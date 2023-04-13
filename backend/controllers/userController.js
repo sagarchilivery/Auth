@@ -20,6 +20,11 @@ export const user_login = async (req, res) => {
               expiresIn: "1hr",
             }
           );
+          res.cookie(String(existingUser._id), token,{
+            path:"/",
+            expires: new Date(Date.now()+1000*30),
+            http
+          })
           return res
             .status(200)
             .json({ message: "Login successfull", user: existingUser, token });
@@ -73,22 +78,30 @@ export const verifyToken = async (req, res, next) => {
     return res.status(404).json({ message: "No Token Found" });
   }
   jwt.verify(String(token), secretKey, (error, user) => {
+    console.log(typeof token, "helo");
     if (error) {
       return res
         .status(400)
         .json({ message: "Invalid Token", error: error.message });
     }
-    // return res.status(200).json(user.id);
-    console.log(user.email);
     req.id = user.id;
-    req.email = user.email;
   });
+  next();
 };
 
-const getUser = async (req, res, next) => {
-  const { id, email } = req.data;
+export const getUser = async (req, res, next) => {
+  let id = req.id;
+  if (!req.id) {
+    return res.status(400).json({ message: "Invalid or missing user ID" });
+  }
   let user;
   try {
-    user = await userModel.findById({ _id: id }, "-pasword");
-  } catch (error) {}
+    user = await userModel.findById({ _id: id }, "-password");
+  } catch (error) {
+    return new Error(error);
+  }
+  if (!user) {
+    return res.status(400).json({ message: "User not found" });
+  }
+  res.status(200).json(user);
 };
