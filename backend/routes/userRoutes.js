@@ -1,11 +1,5 @@
 import express from "express";
-import {
-  all_user,
-  getUser,
-  user_login,
-  user_signup,
-  verifyToken,
-} from "../controllers/userController.js";
+import { all_user, getUser, user_login, user_signup, verifyToken } from "../controllers/userController.js";
 
 export let router = express.Router();
 

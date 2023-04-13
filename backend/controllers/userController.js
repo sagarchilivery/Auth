@@ -20,14 +20,20 @@ export const user_login = async (req, res) => {
               expiresIn: "1hr",
             }
           );
-          res.cookie(String(existingUser._id), token,{
-            path:"/",
-            expires: new Date(Date.now()+1000*30),
-            http
-          })
-          return res
-            .status(200)
-            .json({ message: "Login successfull", user: existingUser, token });
+
+          res.cookie(String(existingUser._id), token, {
+            path: "/",
+            expires: new Date(Date.now() + 1000 * 30),
+            httpOnly: true,
+            sameSite: "lax",
+            // secure: "true",
+          });
+          return (
+            res
+              .status(200)
+              // .json({ message: "Login successfull", user: existingUser, token });
+              .json({ message: "Login successfull" })
+          );
         } else {
           return res.status(400).json({ message: "Wrong credentails" });
         }
@@ -72,8 +78,15 @@ export const all_user = async (req, res) => {
 };
 
 export const verifyToken = async (req, res, next) => {
-  let headers = req.headers["authorization"];
-  let token = headers.split(" ")[1];
+  const cookie = req.headers.cookie;
+  if (!cookie) {
+    return res
+      .status(400)
+      .json({ message: "Cookie is either expired or invalid" });
+  }
+  const token = cookie.split("=")[1];
+  // let headers = req.headers["authorization"];
+  // let token = headers.split(" ")[1];
   if (!token) {
     return res.status(404).json({ message: "No Token Found" });
   }
@@ -90,18 +103,18 @@ export const verifyToken = async (req, res, next) => {
 };
 
 export const getUser = async (req, res, next) => {
-  let id = req.id;
-  if (!req.id) {
-    return res.status(400).json({ message: "Invalid or missing user ID" });
+  const id = req.id;
+  if (!id) {
+    return res.status(400).json({ message: "Invalid token" });
   }
   let user;
   try {
-    user = await userModel.findById({ _id: id }, "-password");
+    user = await userModel.findById({ _id: id }, "-pasword");
+    if (!user) {
+      return res.status(404).json({ message: "Invalid token" });
+    }
   } catch (error) {
-    return new Error(error);
-  }
-  if (!user) {
-    return res.status(400).json({ message: "User not found" });
+    return res.status(404).json({ message: error.message });
   }
   res.status(200).json(user);
 };
